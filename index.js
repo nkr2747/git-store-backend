@@ -44,7 +44,7 @@ app.get("/auth/github", (req, res) => {
 app.get("/auth/github/callback", async (req, res) => {
   const code = req.query.code;
   const installationId = req.query.installation_id; // agar install page se aaya to milega
-  
+  console.log("GitHub callback received with code:", code);
   // access token lo
   const tokenResponse = await fetch(
     "https://github.com/login/oauth/access_token",
