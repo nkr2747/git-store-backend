@@ -82,6 +82,7 @@ app.get("/auth/github/callback", async (req, res) => {
     },
   );
   const installationData = await installationResponse.json();
+  console.log("Installation Data:", installationData);
   const finalInstallationId =
     installationId || installationData.installations[0]?.id;
 
