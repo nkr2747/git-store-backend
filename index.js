@@ -35,6 +35,7 @@ app.use(
 app.use(express.json()); // ✅ ye add karo cors ke baad
 app.get("/auth/github", (req, res) => {
   // sirf OAuth — hamesha yahi rahega
+  console.log("Redirecting to GitHub for authentication...");
   res.redirect(
     `https://github.com/login/oauth/authorize?client_id=${process.env.CLIENT_ID}`,
   );
@@ -43,7 +44,7 @@ app.get("/auth/github", (req, res) => {
 app.get("/auth/github/callback", async (req, res) => {
   const code = req.query.code;
   const installationId = req.query.installation_id; // agar install page se aaya to milega
-
+  
   // access token lo
   const tokenResponse = await fetch(
     "https://github.com/login/oauth/access_token",
