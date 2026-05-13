@@ -27,7 +27,7 @@ async function getGithubToken(installationId) {
 }
 app.use(
   cors({
-    origin: "http://localhost:5173", // frontend ka URL
+    origin: process.env.VITE_FRONTEND_URL, // frontend ka URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Authorization", "Content-Type"],
   }),
@@ -111,7 +111,7 @@ app.get("/auth/github/callback", async (req, res) => {
     { expiresIn: "3h" },
   );
 
-  res.redirect(`http://localhost:5173/?token=${jwtToken}`);
+  res.redirect(`${process.env.VITE_FRONTEND_URL}/?token=${jwtToken}`);
 });
 
 // Step 1 - Har chunk ka blob banao (ye parallel ho sakta hai ✅)
