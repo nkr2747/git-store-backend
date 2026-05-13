@@ -30,6 +30,7 @@ app.use(
     origin: process.env.VITE_FRONTEND_URL, // frontend ka URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Authorization", "Content-Type"],
+    exposedHeaders: ['X-File-Size', 'Content-Length'] // ✅ ye add karo
   }),
 );
 app.use(express.json()); // ✅ ye add karo cors ke baad
@@ -407,6 +408,11 @@ app.get("/download", async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader("Content-Length", fileResult.rows[0].file_size);
+    res.setHeader("X-File-Size", fileResult.rows[0].file_size); // ✅ custom header
+    res.setHeader(
+      "Access-Control-Expose-Headers",
+      "X-File-Size, Content-Length",
+    ); // ✅ CORS ke liye zaroori
 
     const BATCH_SIZE = 4;
     const chunks = chunksResult.rows;
