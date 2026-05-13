@@ -33,6 +33,9 @@ app.use(
   }),
 );
 app.use(express.json()); // ✅ ye add karo cors ke baad
+app.get("/", (req, res) => {
+  res.json({ message: "Server is running" });
+});
 app.get("/auth/github", (req, res) => {
   // sirf OAuth — hamesha yahi rahega
   console.log("Redirecting to GitHub for authentication...");
