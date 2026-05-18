@@ -118,7 +118,6 @@ app.get("/auth/github/callback", async (req, res) => {
   res.redirect(`${process.env.VITE_FRONTEND_URL}/?token=${jwtToken}`);
 });
 
-// Step 1 - Har chunk ka blob banao (ye parallel ho sakta hai ✅)
 async function createBlob(owner, repo, chunk, githubToken) {
   const response = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/blobs`,
@@ -132,36 +131,21 @@ async function createBlob(owner, repo, chunk, githubToken) {
         content: chunk.toString("base64"),
         encoding: "base64",
       }),
-    },
+    }
   );
   const data = await response.json();
-  return data.sha; // blob SHA
+  return data.sha;
 }
 
-// Step 2 - Ek saath tree banao
-async function createTree(owner, repo, githubToken, blobShas, filename) {
-  const tree = blobShas.map((sha, index) => ({
-    path: `${filename}/chunk_${index}`,
+// ✅ baseTreeSha bahar se aata hai — andar fetch nahi hota
+async function createTree(owner, repo, githubToken, blobShas, filename, baseTreeSha) {
+  // ✅ blobShas = [{index, sha}] — global index use hoga
+  const tree = blobShas.map((blob) => ({
+    path: `${filename}/chunk_${blob.index}`, // ✅ global index
     mode: "100644",
     type: "blob",
-    sha: sha,
+    sha: blob.sha,
   }));
-
-  // ✅ pehle current tree SHA lo
-  const refResponse = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`,
-    { headers: { Authorization: `Bearer ${githubToken}` } },
-  );
-  const refData = await refResponse.json();
-  const latestCommitSha = refData.object.sha;
-
-  // ✅ us commit ka tree SHA lo
-  const commitResponse = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`,
-    { headers: { Authorization: `Bearer ${githubToken}` } },
-  );
-  const commitData = await commitResponse.json();
-  const baseTreeSha = commitData.tree.sha;
 
   const response = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/trees`,
@@ -171,18 +155,14 @@ async function createTree(owner, repo, githubToken, blobShas, filename) {
         Authorization: `Bearer ${githubToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        tree,
-        base_tree: baseTreeSha, // ✅ yahi missing tha — purane files preserve honge
-      }),
-    },
+      body: JSON.stringify({ tree, base_tree: baseTreeSha }),
+    }
   );
   const data = await response.json();
   return data.sha;
 }
 
-// Step 3 - Commit banao
-async function createCommit(owner, repo, githubToken, treeSha, parentSha) {
+async function createCommit(owner, repo, githubToken, treeSha, parentSha, message) {
   const response = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/commits`,
     {
@@ -192,17 +172,16 @@ async function createCommit(owner, repo, githubToken, treeSha, parentSha) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message: "Upload file chunks",
+        message,
         tree: treeSha,
         parents: [parentSha],
       }),
-    },
+    }
   );
   const data = await response.json();
-  return data.sha; // commit SHA
+  return data.sha;
 }
 
-// Step 4 - Ref update karo
 async function updateRef(owner, repo, githubToken, commitSha) {
   await fetch(
     `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`,
@@ -213,7 +192,7 @@ async function updateRef(owner, repo, githubToken, commitSha) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ sha: commitSha }),
-    },
+    }
   );
 }
 
@@ -230,7 +209,9 @@ app.post("/upload", async (req, res) => {
 
   const filename = req.query.filename;
   const index = parseInt(req.query.index);
-  const isLast = req.query.isLast === "true"; // last chunk hai?
+
+  if (!filename || isNaN(index))
+    return res.status(400).json({ message: "filename aur index required hai" });
 
   let githubToken;
   try {
@@ -239,23 +220,18 @@ app.post("/upload", async (req, res) => {
     return res.status(500).json({ message: "Failed to get GitHub token" });
   }
 
-  // chunk collect karo
   const chunks = [];
   req.on("data", (chunk) => chunks.push(chunk));
 
   req.on("end", async () => {
     try {
       const completeChunk = Buffer.concat(chunks);
-
-      // ✅ blob banao — ye parallel safe hai
       const blobSha = await createBlob(
         decoded.username,
         "saving_repo1",
         completeChunk,
-        githubToken,
+        githubToken
       );
-
-      //console.log(`Chunk ${index} blob created: ${blobSha}`);
       res.json({ success: true, index, blobSha });
     } catch (err) {
       console.error("Upload error:", err);
@@ -272,13 +248,16 @@ app.post("/commit", async (req, res) => {
   try {
     decoded = jwt.verify(
       req.headers.authorization.split(" ")[1],
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET
     );
   } catch {
     return res.status(401).json({ message: "Invalid token" });
   }
 
-  const { filename, blobShas, fileSize } = req.body; // [{index: 0, sha: "..."}, ...]
+  const { filename, blobShas, fileSize, isLastBatch } = req.body;
+
+  if (!filename || !blobShas || !fileSize)
+    return res.status(400).json({ message: "filename, blobShas, fileSize required" });
 
   let githubToken;
   try {
@@ -288,24 +267,32 @@ app.post("/commit", async (req, res) => {
   }
 
   try {
-    // sort karo index ke hisaab se
+    // index ke hisaab se sort karo
     const sortedBlobs = blobShas.sort((a, b) => a.index - b.index);
 
-    // current HEAD SHA lo
+    // ✅ current HEAD aur baseTree ek baar lo
     const refResponse = await fetch(
       `https://api.github.com/repos/${decoded.username}/saving_repo1/git/refs/heads/main`,
-      { headers: { Authorization: `Bearer ${githubToken}` } },
+      { headers: { Authorization: `Bearer ${githubToken}` } }
     );
     const refData = await refResponse.json();
     const parentSha = refData.object.sha;
 
-    // tree banao
+    const commitResponse = await fetch(
+      `https://api.github.com/repos/${decoded.username}/saving_repo1/git/commits/${parentSha}`,
+      { headers: { Authorization: `Bearer ${githubToken}` } }
+    );
+    const commitData = await commitResponse.json();
+    const baseTreeSha = commitData.tree.sha;
+
+    // ✅ tree banao — global index wale paths honge
     const treeSha = await createTree(
       decoded.username,
       "saving_repo1",
       githubToken,
-      sortedBlobs.map((b) => b.sha),
+      sortedBlobs,       // ✅ {index, sha} objects pass ho rahe hain
       filename,
+      baseTreeSha
     );
 
     // commit karo
@@ -315,30 +302,39 @@ app.post("/commit", async (req, res) => {
       githubToken,
       treeSha,
       parentSha,
+      `Upload ${filename} chunks ${sortedBlobs[0].index} to ${sortedBlobs[sortedBlobs.length - 1].index}`
     );
 
     // ref update karo
     await updateRef(decoded.username, "saving_repo1", githubToken, commitSha);
-    // ✅ Chunks DB mein save karo
-    //console.log(filename,decoded.username,blob.index,`${filename}/chunk_${blob.index}`);
-    // ✅ File metadata save karo
-    await pool.query(
-      `INSERT INTO files (file_name, github_username, file_size)
-   VALUES ($1, $2, $3)`,
-      [filename, decoded.username, fileSize], // fileSize frontend se bhejo
-    );
-    for (const blob of sortedBlobs) {
-      //console.log(filename,decoded.username,blob.index,`${filename}/chunk_${blob.index}`);
-      await pool.query(
-        `INSERT INTO chunks (file_name, github_username, chunk_index, directory_path)
-     VALUES ($1, $2, $3, $4)`,
-        [
-          filename,
-          decoded.username,
-          blob.index,
-          `${filename}/chunk_${blob.index}`, // GitHub path
-        ],
-      );
+
+    // ✅ DB — transaction use karo
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // ✅ sirf last batch mein files table mein insert karo
+      if (isLastBatch) {
+        await client.query(
+          `INSERT INTO files (file_name, github_username, file_size) VALUES ($1, $2, $3)`,
+          [filename, decoded.username, fileSize]
+        );
+      }
+
+      // har batch mein chunks save karo
+      for (const blob of sortedBlobs) {
+        await client.query(
+          `INSERT INTO chunks (file_name, github_username, chunk_index, directory_path) VALUES ($1, $2, $3, $4)`,
+          [filename, decoded.username, blob.index, `${filename}/chunk_${blob.index}`]
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
 
     res.json({ success: true });
