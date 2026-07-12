@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { createAppAuth } = require("@octokit/auth-app");
@@ -21,7 +21,7 @@ const privateKey = process.env.GITHUB_PRIVATE_KEY;
 
 app.use(
   cors({
-    origin: process.env.VITE_FRONTEND_URL, // frontend ka URL
+    origin: [process.env.VITE_FRONTEND_URL1,process.env.VITE_FRONTEND_URL2], // frontend ka URL
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Authorization", "Content-Type"],
     exposedHeaders: ["X-File-Size", "Content-Length"], //  ye add karo
