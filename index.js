@@ -17,8 +17,6 @@ const deleteController = require("./controllers/deleteController");
 const commitController = require("./controllers/commitController");
 const auth = require("./middleware/auth")
 
-const privateKey = process.env.GITHUB_PRIVATE_KEY;
-
 app.use(
   cors({
     origin: process.env.VITE_FRONTEND_URL, // frontend ka URL
