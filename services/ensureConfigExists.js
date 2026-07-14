@@ -6,6 +6,7 @@ async function ensureConfigExists(owner, githubToken) {
   await ensureRepoExists(owner, CONFIG_REPO, githubToken); // auto_init:true, so main branch already exists
 
   const existing = await fetchConfigFile(owner, githubToken);
+  console.log("Existing: ",existing)
   if (existing) return existing.content;
 
   const defaultConfig = {

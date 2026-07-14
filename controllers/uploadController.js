@@ -24,6 +24,7 @@ const uploadController = async (req, res) => {
     config = await ensureConfigExists(decoded.username, githubToken);
     console.log("config: ", config);
   }catch(err){
+    console.error(err.message)
     return res.status(500).json({ message: "Failed to get GitHub config" });
   }
   const repo = config.current_repo.name;
