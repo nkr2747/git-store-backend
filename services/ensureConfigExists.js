@@ -3,6 +3,7 @@ const ensureRepoExists = require("./ensureRepoExists");
 const { fetchConfigFile, writeConfigFile, CONFIG_REPO } = require("./githubConfig");
 
 async function ensureConfigExists(owner, githubToken) {
+  console.log("Config_repo:  ", CONFIG_REPO)
   await ensureRepoExists(owner, CONFIG_REPO, githubToken); // auto_init:true, so main branch already exists
 
   const existing = await fetchConfigFile(owner, githubToken);
