@@ -22,10 +22,11 @@ const uploadController = async (req, res) => {
   let config;
   try{
     config = await ensureConfigExists(decoded.username, githubToken);
+    console.log("config: ", config);
   }catch(err){
     return res.status(500).json({ message: "Failed to get GitHub config" });
   }
-  const repo = config.current_repo;
+  const repo = config.current_repo.name;
   const chunks = [];
   req.on("data", (chunk) => chunks.push(chunk));
 
