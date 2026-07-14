@@ -2,6 +2,8 @@ const jwt = require("jsonwebtoken");
 const createBlob = require("../services/createBlob")
 const getGithubToken = require("../services/helper")
 
+
+
 const uploadController = async (req, res) => {
   const decoded = req.user;
 
@@ -17,7 +19,13 @@ const uploadController = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: "Failed to get GitHub token" });
   }
-
+  let config;
+  try{
+    config = await ensureConfigExists(decoded.username, githubToken);
+  }catch(err){
+    return res.status(500).json({ message: "Failed to get GitHub config" });
+  }
+  const repo = config.current_repo;
   const chunks = [];
   req.on("data", (chunk) => chunks.push(chunk));
 
@@ -27,11 +35,11 @@ const uploadController = async (req, res) => {
       chunks.length = 0; // ✅ memory clear karne ke liye
       const blobSha = await createBlob(
         decoded.username,
-        "saving_repo1",
+        repo,
         completeChunk,
         githubToken
       );
-      res.json({ success: true, index, blobSha });
+      res.json({ success: true, index, blobSha , repo});
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ error: err.message });

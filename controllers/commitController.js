@@ -7,12 +7,12 @@ const updateRef = require("../services/updateRef");
 
 const commitController = async (req, res) => {
   const decoded = req.user;
-  const { filename, blobShas, fileSize, isFirstBatch, isLastBatch } = req.body;
+  const { filename, blobShas, fileSize, isFirstBatch, isLastBatch, repo } = req.body;
 
-  if (!filename || !blobShas || !fileSize)
+  if (!filename || !blobShas || !fileSize || !repo)
     return res
       .status(400)
-      .json({ message: "filename, blobShas, fileSize required" });
+      .json({ message: "filename, blobShas, fileSize , reop required" });
 
   let githubToken;
   try {
@@ -27,14 +27,14 @@ const commitController = async (req, res) => {
 
     // ✅ current HEAD aur baseTree ek baar lo
     const refResponse = await fetch(
-      `https://api.github.com/repos/${decoded.username}/saving_repo1/git/refs/heads/main`,
+      `https://api.github.com/repos/${decoded.username}/${repo}/git/refs/heads/main`,
       { headers: { Authorization: `Bearer ${githubToken}` } },
     );
     const refData = await refResponse.json();
     const parentSha = refData.object.sha;
 
     const commitResponse = await fetch(
-      `https://api.github.com/repos/${decoded.username}/saving_repo1/git/commits/${parentSha}`,
+      `https://api.github.com/repos/${decoded.username}/${repo}/git/commits/${parentSha}`,
       { headers: { Authorization: `Bearer ${githubToken}` } },
     );
     const commitData = await commitResponse.json();
@@ -43,7 +43,7 @@ const commitController = async (req, res) => {
     // ✅ tree banao — global index wale paths honge
     const treeSha = await createTree(
       decoded.username,
-      "saving_repo1",
+      repo,
       githubToken,
       sortedBlobs, // ✅ {index, sha} objects pass ho rahe hain
       filename,
@@ -53,7 +53,7 @@ const commitController = async (req, res) => {
     // commit karo
     const commitSha = await createCommit(
       decoded.username,
-      "saving_repo1",
+      repo,
       githubToken,
       treeSha,
       parentSha,
@@ -61,7 +61,7 @@ const commitController = async (req, res) => {
     );
 
     // ref update karo
-    await updateRef(decoded.username, "saving_repo1", githubToken, commitSha);
+    await updateRef(decoded.username, repo, githubToken, commitSha);
 
     // ✅ DB — transaction use karo
     const client = await pool.connect();
@@ -92,12 +92,13 @@ const commitController = async (req, res) => {
       // har batch mein chunks save karo
       for (const blob of sortedBlobs) {
         await client.query(
-          `INSERT INTO chunks (file_name, github_username, chunk_index, directory_path) VALUES ($1, $2, $3, $4)`,
+          `INSERT INTO chunks (file_name, github_username, chunk_index, directory_path, repo) VALUES ($1, $2, $3, $4, $5)`,
           [
             filename,
             decoded.username,
             blob.index,
             `${filename}/chunk_${blob.index}`,
+            repo
           ],
         );
       }
