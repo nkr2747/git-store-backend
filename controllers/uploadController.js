@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const createBlob = require("../services/createBlob")
 const getGithubToken = require("../services/helper")
-const ensureConfigExists = require("../services/ensureRepoExists")
+const ensureConfigExists = require("../services/ensureConfigExists")
 
 
 const uploadController = async (req, res) => {
