@@ -1,4 +1,5 @@
 async function ensureRepoExists(owner, repoName, githubToken) {
+  console.log("Owner: ",owner, "repoName: ", repoName)
   const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
     headers: { Authorization: `Bearer ${githubToken}` },
   });
