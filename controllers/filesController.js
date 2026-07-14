@@ -7,7 +7,7 @@ const filesController = async (req, res) => {
     const result = await pool.query(
       `SELECT file_name, file_size, uploaded_at 
        FROM files 
-       WHERE github_username = $1
+       WHERE github_username = $1 and completed = true
        ORDER BY uploaded_at DESC
       `,
       [decoded.username],

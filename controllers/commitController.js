@@ -7,7 +7,7 @@ const updateRef = require("../services/updateRef");
 
 const commitController = async (req, res) => {
   const decoded = req.user;
-  const { filename, blobShas, fileSize, isLastBatch } = req.body;
+  const { filename, blobShas, fileSize, isFirstBatch, isLastBatch } = req.body;
 
   if (!filename || !blobShas || !fileSize)
     return res
@@ -69,10 +69,23 @@ const commitController = async (req, res) => {
       await client.query("BEGIN");
 
       // ✅ sirf last batch mein files table mein insert karo
-      if (isLastBatch) {
+      if (isFirstBatch && isLastBatch) {
+        // whole file fit in one batch — insert as already complete
         await client.query(
-          `INSERT INTO files (file_name, github_username, file_size) VALUES ($1, $2, $3)`,
+          `INSERT INTO files (file_name, github_username, file_size, completed)
+     VALUES ($1, $2, $3, true)`,
           [filename, decoded.username, fileSize],
+        );
+      } else if (isFirstBatch) {
+        await client.query(
+          `INSERT INTO files (file_name, github_username, file_size, completed)
+     VALUES ($1, $2, $3, false)`,
+          [filename, decoded.username, fileSize],
+        );
+      } else if (isLastBatch) {
+        await client.query(
+          `UPDATE files SET completed = true WHERE file_name = $1 AND github_username = $2`,
+          [filename, decoded.username],
         );
       }
 
