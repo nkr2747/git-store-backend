@@ -4,7 +4,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { createAppAuth } = require("@octokit/auth-app");
+
 const fs = require("fs");
 const pool = require("./config/db");
 const { blob } = require("stream/consumers");
