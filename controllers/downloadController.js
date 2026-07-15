@@ -35,7 +35,7 @@ const downloadController = async (req, res) => {
 
     const BATCH_SIZE = 2;
     const chunks = chunksResult.rows;
-
+    console.log(chunks);
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       const batch = chunks.slice(i, i + BATCH_SIZE);
 
