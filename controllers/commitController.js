@@ -69,6 +69,7 @@ const commitController = async (req, res) => {
       await client.query("BEGIN");
 
       // ✅ sirf last batch mein files table mein insert karo
+      console.log("isFirst: ",isFirstBatch, " isLast: ",isLastBatch)
       if (isFirstBatch && isLastBatch) {
         // whole file fit in one batch — insert as already complete
         await client.query(

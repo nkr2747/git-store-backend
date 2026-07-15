@@ -4,8 +4,8 @@ const jwt = require("jsonwebtoken");
 const callbackController = async (req, res) => {
   const code = req.query.code;
   const installationId = req.query.installation_id; // agar install page se aaya to milega
-  //console.log("GitHub callback received with code:", code);
-  //console.log("Installation ID (if any):", installationId);
+  console.log("GitHub callback received with code:", code);
+  console.log("Installation ID (if any):", installationId);
   // access token lo
   const tokenResponse = await fetch(
     "https://github.com/login/oauth/access_token",
@@ -42,7 +42,7 @@ const callbackController = async (req, res) => {
     },
   );
   const installationData = await installationResponse.json();
-  //console.log("Installation Data:", installationData);
+  console.log("Installation Data:", installationData);
   const finalInstallationId =
     installationId || installationData.installations[0].id;
 
