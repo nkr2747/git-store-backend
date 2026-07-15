@@ -44,7 +44,7 @@ const callbackController = async (req, res) => {
   const installationData = await installationResponse.json();
   console.log("Installation Data:", installationData);
   const finalInstallationId =
-    installationId || installationData.installations[0].id;
+    installationId || installationData.installations[0]?.id;
 
   if (!finalInstallationId) {
     // ✅ install nahi — backend se hi install page pe bhejo
