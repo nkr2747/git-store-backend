@@ -1,9 +1,12 @@
 const pool = require("../config/db");
 const jwt = require("jsonwebtoken");
+const ensureRepoExists = require("../services/ensureRepoExists")
+const  {CONFIG_REPO } = require("../services/githubConfig")
 
 const callbackController = async (req, res) => {
   const code = req.query.code;
   const installationId = req.query.installation_id; // agar install page se aaya to milega
+
   console.log("GitHub callback received with code:", code);
   console.log("Installation ID (if any):", installationId);
   // access token lo
@@ -53,7 +56,12 @@ const callbackController = async (req, res) => {
     // tab installation_id milega query mein
   }
   const githubUsername = githubUser.login; // GitHub se mila username
+  try{  
+    await ensureRepoExists(githubUsername, CONFIG_REPO, accessToken)
+  }catch(err){
+    console.error("Unable to ensure CONFIG_REPO: ",err.message);
 
+  }
   await pool.query(
     `INSERT INTO users (github_username)
      VALUES ($1)
