@@ -26,7 +26,7 @@ const downloadController = async (req, res) => {
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
-    res.setHeader("Content-Length", fileResult.rows[0].file_size);
+    //res.setHeader("Content-Length", fileResult.rows[0].file_size);
     res.setHeader("X-File-Size", fileResult.rows[0].file_size); // ✅ custom header
     res.setHeader(
       "Access-Control-Expose-Headers",
