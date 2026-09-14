@@ -33,7 +33,7 @@ const callbackController = async (req, res) => {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const githubUser = await userResponse.json();
-  //console.log(githubUser)
+  console.log(githubUser)
   // ✅ installations check karo
   const installationResponse = await fetch(
     `https://api.github.com/user/{githubUser.login}/installations`,
