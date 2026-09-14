@@ -32,7 +32,7 @@ app.get("/", (req, res) => {
 });
 app.get("/auth/github", authController);
 
-app.get("/auth/github/callback", callbackController);
+app.get("/auth/github/callback", callbackControllerv2);
 
 app.use(auth);
 
