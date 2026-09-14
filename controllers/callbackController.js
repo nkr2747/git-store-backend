@@ -4,6 +4,7 @@ const ensureRepoExists = require("../services/ensureRepoExists")
 const  {CONFIG_REPO } = require("../services/githubConfig")
 
 const callbackController = async (req, res) => {
+  console.log("QUERY:", req.query);
   const code = req.query.code;
   const installationId = req.query.installation_id; // agar install page se aaya to milega
 
