@@ -36,7 +36,7 @@ const callbackController = async (req, res) => {
   console.log(githubUser)
   // ✅ installations check karo
   const installationResponse = await fetch(
-    `https://api.github.com/user/{githubUser.login}/installations`,
+    `https://api.github.com/user/${githubUser.login}/installations`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
