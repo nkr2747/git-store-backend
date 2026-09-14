@@ -10,6 +10,7 @@ const pool = require("./config/db");
 const { blob } = require("stream/consumers");
 const authController = require("./controllers/authController");
 const callbackController = require("./controllers/callbackController");
+const callbackControllerv2 = require("./controllers/callbackControllerv2");
 const uploadController = require("./controllers/uploadController");
 const downloadController = require("./controllers/downloadController");
 const filesController = require("./controllers/filesController");
@@ -31,7 +32,7 @@ app.get("/", (req, res) => {
 });
 app.get("/auth/github", authController);
 
-app.get("/auth/github/callback", callbackController);
+app.get("/auth/github/callback", callbackControllerv2);
 
 app.use(auth);
 
