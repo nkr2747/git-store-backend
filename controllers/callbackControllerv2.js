@@ -36,7 +36,7 @@ const callbackController = async (req, res) => {
   console.log(githubUser)
   // ✅ installations check karo
   const installationResponse = await fetch(
-    `https://api.github.com/user/${githubUser.login}/installations`,
+    `https://api.github.com/user/installations`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -46,12 +46,20 @@ const callbackController = async (req, res) => {
   );
   const installationData = await installationResponse.json();
   console.log("Installation Data:", installationData);
-  if(installationResponse.status === 404){
-    return res.redirect(
-    `https://github.com/apps/nkrstorage/installations/new`
+   const githubUsername = githubUser.login; // GitHub se mila username
+  const finalInstallationId = installationData.installations.find(
+  (installation) =>
+    installation.account.login === githubUsername &&
+    installation.app_slug === "nkrstorage"
+)?.id;
+
+if (!finalInstallationId) {
+  console.log("App not installed");
+  return res.redirect(
+    "https://github.com/apps/nkrstorage/installations/new"
   );
-  }
-  const finalInstallationId = installationData.installations[0]?.id;
+}
+
 
   // if (!finalInstallationId) {
   //   // ✅ install nahi — backend se hi install page pe bhejo
@@ -59,7 +67,7 @@ const callbackController = async (req, res) => {
   //   // install hone ke baad GitHub wapas callback pe aayega
   //   // tab installation_id milega query mein
   // }
-  const githubUsername = githubUser.login; // GitHub se mila username
+ 
   try{  
     await ensureRepoExists(githubUsername, CONFIG_REPO, accessToken)
   }catch(err){
